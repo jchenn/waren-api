@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { AxiosResponse } from 'axios';
-import { Observable } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 import { ConfigService } from '@nestjs/config';
 
 export interface TuShareModel {
@@ -18,25 +17,31 @@ export class TuShareService {
   @Inject(ConfigService)
   private readonly configService: ConfigService;
 
-  get(
-    api_name: string,
-    params?: any,
-    fields?: string,
-  ): Observable<AxiosResponse<TuShareModel>> {
-    return this.httpService.post(
-      'http://api.tushare.pro',
-      {
-        api_name,
-        token: this.configService.get('TUSHARE_TOKEN'),
-        params: params || {},
-        fields: fields || '',
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
-    );
+  async get(api_name: string, params?: any, fields?: string): Promise<any> {
     // return this.httpService.get('http://localhost:3000/api/user/list');
+
+    const res: TuShareModel = (await firstValueFrom(
+      this.httpService.post(
+        'http://api.tushare.pro',
+        {
+          api_name,
+          token: this.configService.get('TUSHARE_TOKEN'),
+          params: params || {},
+          fields: fields || '',
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      ),
+    )) as any;
+
+    const { code, data } = res.data;
+    if (code === 0) {
+      return data;
+    }
+
+    throw res;
   }
 }
