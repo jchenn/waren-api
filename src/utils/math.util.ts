@@ -17,3 +17,14 @@ export function getMA(data: number[], days: number, count: number): number[] {
   }
   return result;
 }
+
+export function getMaxArrayGapRate(arr1: number[], arr2: number[]): number {
+  let maxGapRate = 0;
+  for (let i = 0; i < Math.min(arr1.length, arr2.length); ++i) {
+    const gapRate = Math.abs(arr1[i] - arr2[i]) / Math.max(arr1[i], arr2[i]);
+    if (gapRate > maxGapRate) {
+      maxGapRate = gapRate;
+    }
+  }
+  return maxGapRate;
+}
