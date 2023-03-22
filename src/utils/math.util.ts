@@ -10,7 +10,7 @@ export function getMA(data: number[], days: number, count: number): number[] {
   for (let i = 0; i < count; ++i) {
     let sum = 0;
     for (let j = 0; j < days; ++j) {
-      sum += parseFloat(`${data[i + j]}`);
+      sum += data[i + j];
     }
     const avg = sum / days;
     result.push(avg);
