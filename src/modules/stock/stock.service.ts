@@ -4,6 +4,8 @@ import { TuShareService } from 'src/utils/tushare.util';
 import { StockDTO } from './dto/StockDTO';
 import { StockEntity } from '../../common/entities/stock.entity';
 import { Repository } from 'typeorm';
+import { DailyEntity } from 'src/common/entities/daily.entity';
+import { DailyTradeDTO } from './dto/DailyTradeDTO';
 
 interface StockBasicResponse {
   items: StockDTO[];
@@ -18,6 +20,9 @@ export class StockService {
 
   @InjectRepository(StockEntity)
   private readonly stockRepository: Repository<StockEntity>;
+
+  @InjectRepository(DailyEntity)
+  private readonly dailyRepository: Repository<DailyEntity>;
 
   async getStockList(
     limit: number,
@@ -36,7 +41,7 @@ export class StockService {
     return data;
   }
 
-  async saveOrUpdateStockList(list: StockDTO[]) {
+  async saveOrUpdateStockList(list: StockDTO[], onlyAdd: boolean) {
     list.forEach(async (item) => {
       const entity = {
         code: item.ts_code,
@@ -58,9 +63,53 @@ export class StockService {
 
       if (stock === null) {
         await this.stockRepository.save(entity);
-      } else {
+      } else if (!onlyAdd) {
         await this.stockRepository.update(stock.id, entity);
       }
     });
+  }
+
+  async getStockDailyTrade(tradeDate: string) {
+    const dailyData = await this.dailyRepository.findOneBy({
+      tradeDate,
+    });
+
+    if (dailyData !== null) {
+      return { fields: [], items: [], has_more: false };
+    }
+
+    const data = await this.tuShareService.get(
+      'daily',
+      {
+        trade_date: tradeDate,
+      },
+      'ts_code,trade_date,open,high,low,close,pre_close,change,pct_chg,vol,amount',
+    );
+
+    return data;
+  }
+
+  async deleteDailyTrade(tradeDate: string) {
+    await this.dailyRepository.delete({
+      tradeDate,
+    });
+  }
+
+  async saveDailyTrade(dto: DailyTradeDTO) {
+    const entity = {
+      tradeDate: dto.trade_date,
+      code: dto.ts_code,
+      open: dto.open,
+      high: dto.high,
+      low: dto.low,
+      close: dto.close,
+      preClose: dto.pre_close,
+      change: dto.change,
+      pctChg: dto.pct_chg,
+      vol: dto.vol,
+      amount: dto.amount,
+    };
+
+    await this.dailyRepository.save(entity);
   }
 }

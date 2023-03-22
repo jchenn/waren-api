@@ -1,9 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { UserController } from './modules/user/user.controller';
-import { AppService } from './app.service';
 import { QuantifyModule } from './modules/quantify/quantify.module';
 import { StockModule } from './modules/stock/stock.module';
 
@@ -33,7 +30,7 @@ import { StockModule } from './modules/stock/stock.module';
     StockModule,
     QuantifyModule,
   ],
-  controllers: [AppController, UserController],
-  providers: [AppService],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}
