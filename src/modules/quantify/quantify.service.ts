@@ -1,22 +1,20 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, CACHE_MANAGER } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DailyEntity } from 'src/common/entities/daily.entity';
 import { StockEntity } from 'src/common/entities/stock.entity';
-import { TuShareService } from 'src/utils/tushare.util';
 import { Repository } from 'typeorm';
-
-const MEM_CACHE = {};
+import { Cache } from 'cache-manager';
 
 @Injectable()
 export class QuantifyService {
-  @Inject(TuShareService)
-  private readonly tushareService: TuShareService;
-
   @InjectRepository(DailyEntity)
   private readonly dailyRepository: Repository<DailyEntity>;
 
   @InjectRepository(StockEntity)
   private readonly stockRepository: Repository<StockEntity>;
+
+  @Inject(CACHE_MANAGER)
+  private readonly cacheManager: Cache;
 
   async getStockList(limit?: number) {
     const data = await this.stockRepository.find({
@@ -26,16 +24,13 @@ export class QuantifyService {
     return data;
   }
 
-  async getDailyTradeByCodeAndDate(
-    code: string,
-    tradeDate: string,
-    limit: number,
-  ) {
-    // TODO redis 优化
+  async getDailyTradeByCodeAndDate(code: string, tradeDate: string, limit: number) {
+    // 优先从缓存中获取
     const MEM_KEY = `${code}_${tradeDate}`;
-    if (MEM_CACHE[MEM_KEY]) {
-      console.log('cache hit 2', MEM_KEY);
-      return MEM_CACHE[MEM_KEY];
+    const cachedData = await this.cacheManager.get(MEM_KEY);
+    if (cachedData) {
+      console.log('[redis] cache hit:', MEM_KEY);
+      return JSON.parse(cachedData as string);
     }
 
     const data = await this.dailyRepository
@@ -47,7 +42,10 @@ export class QuantifyService {
       .limit(limit)
       .getMany();
 
-    MEM_CACHE[MEM_KEY] = data;
+    // 缓存数据，24小时过期
+    await this.cacheManager.set(MEM_KEY, JSON.stringify(data), {
+      ttl: 24 * 60 * 60,
+    });
     return data;
   }
 }

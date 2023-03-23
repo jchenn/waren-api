@@ -1,6 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Module, CacheModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import * as redisStore from 'cache-manager-redis-store';
+import type { RedisClientOptions } from 'redis';
 import { QuantifyModule } from './modules/quantify/quantify.module';
 import { StockModule } from './modules/stock/stock.module';
 
@@ -26,6 +28,17 @@ import { StockModule } from './modules/stock/stock.module';
         // migrations: ['./migrations/*.ts'],
       }),
       inject: [ConfigService],
+    }),
+    CacheModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) =>
+        <RedisClientOptions>{
+          store: redisStore,
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
+        },
+      inject: [ConfigService],
+      isGlobal: true,
     }),
     StockModule,
     QuantifyModule,
