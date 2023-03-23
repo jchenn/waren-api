@@ -35,6 +35,8 @@ export class QuantifyController {
     const stdDev74 = ss.standardDeviation(ma74);
     const stdDev99 = ss.standardDeviation(ma99);
 
+    const amountList = tradeList.map((trade) => parseFloat(`${trade.amount}`));
+
     return {
       ma12,
       ma74,
@@ -48,6 +50,7 @@ export class QuantifyController {
       lastMa12: ma12[0],
       lastMa74: ma74[0],
       lastMa99: ma99[0],
+      amountList,
     };
   }
 
@@ -60,7 +63,13 @@ export class QuantifyController {
     avg99: number,
     stdDev74: number,
     stdDev99: number,
+    amountList: number[],
   ): boolean {
+    // 数据不足
+    if (ma99[ma99.length - 1] === 0) {
+      return false;
+    }
+
     // 近2日涨幅
     const UP_DAY = 2;
     const up12 = ma12[0] / ma12[UP_DAY] - 1;
@@ -72,24 +81,29 @@ export class QuantifyController {
     // console.log(ma12[0] - ma74[0], ma12[0] - ma99[0], Math.abs(ma74[0] - ma99[0]));
     // console.log(Math.min(ma74[0] / avg74, ma99[0] / avg99));
     // console.log(ma12[ma12.length - 1], avg12, ma12[0]);
-    console.log(ma12[0] / ss.mean([ma74[0], ma99[0]]));
+    // console.log(ma12[0] / ss.mean([ma74[0], ma99[0]]));
+    // console.log(ss.average(amountList.slice(0, 3)), ss.average(amountList.slice(3, 6)));
+    // console.log(ma74[0] / ma99[0]);
 
     if (
-      // 1. 股价大于2.5（+农业银行）
+      // 1. 近3日成交量增加
+      ss.average(amountList.slice(0, 3)) > ss.average(amountList.slice(3, 6)) &&
+      // 2. 股价大于2.5（+农业银行）
       ma12[0] >= 2.5 &&
-      // 2. 中线趋势相同，且上升或基本持平（-雅克科技）
+      // 3. 中线趋势相同，且上升或基本持平（-雅克科技）
       (ma74[0] - avg74) * (ma99[0] - avg99) > 0 &&
       Math.min(ma74[0] / avg74, ma99[0] / avg99) >= 0.985 &&
-      // 3. MA74要在MA99上方，允许0.4%的偏差（+农业银行）
-      ma99[0] <= ma74[0] * 1.004 &&
-      // 4. 近3天MA12均线涨幅更快,有起飞的趋势
+      // 4. MA74要在MA99上方，允许0.5%的偏差（+农业银行）
+      ma74[0] >= ma99[0] * 0.995 &&
+      // 5. 近3天MA12均线涨幅更快,有起飞的趋势
       up12 > 0 &&
       Math.min(up74, up99) >= -0.0015 &&
       up12 / Math.max(up74, up99) >= 3 &&
-      // 5. MA12突破MA74和MA99,但还没起飞
-      ma12[0] / ss.mean([ma74[0], ma99[0]]) > 1.002 &&
+      // 6. MA12突破MA74和MA99,但还没起飞
+      ma12[0] / ss.mean([ma74[0], ma99[0]]) > 1 &&
+      // 7. 还没有起飞，后续把这个作为校验该策略是否有效的依据
       ma12[0] / ss.mean([ma74[0], ma99[0]]) < 1.04 &&
-      // 6. MA74和MA99足够平稳
+      // 8. MA74和MA99足够平稳
       stdDev74 <= avg74 * OFFSET_RATE &&
       stdDev99 <= avg99 * OFFSET_RATE
     ) {
@@ -115,17 +129,25 @@ export class QuantifyController {
     const result = [];
     await Promise.all(
       stockList.map(async (stock) => {
-        const { ma12, ma74, ma99, avg12, stdDev74, avg74, stdDev99, avg99 } = await this.calculateMA(
+        const { ma12, ma74, ma99, avg12, stdDev74, avg74, stdDev99, avg99, amountList } = await this.calculateMA(
           stock.code,
           params.from_date || dayjs().subtract(1, 'day').format('YYYYMMDD'),
         );
 
-        if (this.checkSatisfy(ma12, ma74, ma99, avg12, avg74, avg99, stdDev74, stdDev99)) {
-          console.log('符合条件:', stock.code, stock.name);
-          result.push({
-            code: stock.code,
-            name: stock.name,
-          });
+        // console.log(stock.code);
+        try {
+          if (this.checkSatisfy(ma12, ma74, ma99, avg12, avg74, avg99, stdDev74, stdDev99, amountList)) {
+            console.log('符合条件:', stock.code, stock.name);
+            result.push({
+              code: stock.code,
+              name: stock.name,
+            });
+          }
+        } catch (e) {
+          console.log('error', e);
+          // console.log('ma12', ma12);
+          // console.log('ma74', ma74);
+          // console.log('ma99', ma99);
         }
 
         return result;
@@ -143,20 +165,23 @@ export class QuantifyController {
 
   @Get('strategy/ma/get/test')
   async getByMAStrategyTest() {
-    const code = '600461.SH';
+    const code = '301257.SZ';
     const START_DATE = '20230322';
     // const code = '688618.SH'; // 三旺通信
     // const START_DATE = '20221027';
     // const code = '601288.SH'; // 农业银行
-    // const START_DATE = '20221202';
+    // const START_DATE = '20221201';
 
     let satisfied = false;
-    const { ma12, ma74, ma99, avg12, stdDev74, avg74, stdDev99, avg99 } = await this.calculateMA(code, START_DATE);
+    const { ma12, ma74, ma99, avg12, stdDev74, avg74, stdDev99, avg99, amountList } = await this.calculateMA(
+      code,
+      START_DATE,
+    );
 
     // console.log(ma12[0], ma74[0], ma99[0]);
     // console.log(stdDev74, avg74);
     // console.log(stdDev99, avg99);
-    if (this.checkSatisfy(ma12, ma74, ma99, avg12, avg74, avg99, stdDev74, stdDev99)) {
+    if (this.checkSatisfy(ma12, ma74, ma99, avg12, avg74, avg99, stdDev74, stdDev99, amountList)) {
       satisfied = true;
     }
 
@@ -172,6 +197,7 @@ export class QuantifyController {
         avg99,
         stdDev74,
         stdDev99,
+        amountList,
       },
     };
   }

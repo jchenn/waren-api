@@ -10,7 +10,7 @@ export function getMA(data: number[], days: number, count: number): number[] {
   for (let i = 0; i < count; ++i) {
     let sum = 0;
     for (let j = 0; j < days; ++j) {
-      sum += data[i + j];
+      sum += data[i + j] || 0;
     }
     const avg = sum / days;
     result.push(avg);
@@ -27,4 +27,14 @@ export function getMaxArrayGapRate(arr1: number[], arr2: number[]): number {
     }
   }
   return maxGapRate;
+}
+
+export function findMinIndex(arr: number[]): number {
+  let minIndex = 0;
+  for (let i = 1; i < arr.length; ++i) {
+    if (arr[i] < arr[minIndex]) {
+      minIndex = i;
+    }
+  }
+  return minIndex;
 }

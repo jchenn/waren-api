@@ -29,13 +29,13 @@ export class QuantifyService {
     const MEM_KEY = `${code}_${tradeDate}`;
     const cachedData = await this.cacheManager.get(MEM_KEY);
     if (cachedData) {
-      console.log('[redis] cache hit:', MEM_KEY);
+      // console.log('[redis] cache hit:', MEM_KEY);
       return JSON.parse(cachedData as string);
     }
 
     const data = await this.dailyRepository
       .createQueryBuilder('daily')
-      .select(['daily.tradeDate', 'daily.close'])
+      .select(['daily.tradeDate', 'daily.close', 'daily.amount'])
       .where('daily.code = :code', { code })
       .andWhere('daily.tradeDate <= :tradeDate', { tradeDate })
       .orderBy('daily.tradeDate', 'DESC')

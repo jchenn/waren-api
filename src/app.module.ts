@@ -6,6 +6,8 @@ import type { RedisClientOptions } from 'redis';
 import { QuantifyModule } from './modules/quantify/quantify.module';
 import { StockModule } from './modules/stock/stock.module';
 
+// console.log(process.env);
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -34,7 +36,9 @@ import { StockModule } from './modules/stock/stock.module';
       useFactory: async (configService: ConfigService) =>
         <RedisClientOptions>{
           store: redisStore,
-          host: configService.get('REDIS_HOST'),
+          host: /^windows/i.test(process.env.OS)
+            ? configService.get('REDIS_HOST_WIN')
+            : configService.get('REDIS_HOST'),
           port: configService.get('REDIS_PORT'),
         },
       inject: [ConfigService],
