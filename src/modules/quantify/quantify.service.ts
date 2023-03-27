@@ -4,6 +4,7 @@ import { DailyEntity } from 'src/common/entities/daily.entity';
 import { StockEntity } from 'src/common/entities/stock.entity';
 import { Repository } from 'typeorm';
 import { Cache } from 'cache-manager';
+import { normalize, serialize } from 'src/utils/redis.util';
 
 @Injectable()
 export class QuantifyService {
@@ -28,9 +29,10 @@ export class QuantifyService {
     // 优先从缓存中获取
     const MEM_KEY = `${code}_${tradeDate}`;
     const cachedData = await this.cacheManager.get(MEM_KEY);
+    // console.log(cachedData);
     if (cachedData) {
       // console.log('[redis] cache hit:', MEM_KEY);
-      return JSON.parse(cachedData as string);
+      return normalize(cachedData as string);
     }
 
     const data = await this.dailyRepository
@@ -43,7 +45,7 @@ export class QuantifyService {
       .getMany();
 
     // 缓存数据，24小时过期
-    await this.cacheManager.set(MEM_KEY, JSON.stringify(data), {
+    await this.cacheManager.set(MEM_KEY, serialize(data), {
       ttl: 24 * 60 * 60,
     });
     return data;

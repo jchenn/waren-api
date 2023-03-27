@@ -27,7 +27,7 @@ export function serialize(obj: any[] | any): string {
       if (index === 0) {
         result.fields.push(key);
       }
-      result.items[index].push = item[key];
+      result.items[index].push(item[key]);
     });
   });
   return JSON.stringify(result);
