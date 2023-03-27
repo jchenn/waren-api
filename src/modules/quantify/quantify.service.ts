@@ -32,7 +32,7 @@ export class QuantifyService {
     // console.log(cachedData);
     if (cachedData) {
       // console.log('[redis] cache hit:', MEM_KEY);
-      return normalize(cachedData as string);
+      return normalize(cachedData);
     }
 
     const data = await this.dailyRepository

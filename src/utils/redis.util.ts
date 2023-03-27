@@ -1,5 +1,6 @@
-export function normalize(str: string): any {
-  const { fields, items } = JSON.parse(str);
+export function normalize(input: any): any {
+  // const { fields, items } = JSON.parse(input);
+  const { fields, items } = input;
   const result = [];
   items.forEach((item: any) => {
     const obj = {};
@@ -15,7 +16,7 @@ export function normalize(str: string): any {
  * 把对象数组的属性名提取出来
  * @param obj
  */
-export function serialize(obj: any[] | any): string {
+export function serialize(obj: any[] | any): any {
   const result = { fields: [], items: [] };
   let input = obj;
   if (!Array.isArray(obj)) {
@@ -30,5 +31,6 @@ export function serialize(obj: any[] | any): string {
       result.items[index].push(item[key]);
     });
   });
-  return JSON.stringify(result);
+  // return JSON.stringify(result);
+  return result;
 }
