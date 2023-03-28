@@ -131,7 +131,7 @@ export class QuantifyController {
       stockList.map(async (stock) => {
         const { ma12, ma74, ma99, avg12, stdDev74, avg74, stdDev99, avg99, amountList } = await this.calculateMA(
           stock.code,
-          params.from_date || dayjs().subtract(1, 'day').format('YYYYMMDD'),
+          params.from_date || dayjs().format('YYYYMMDD'),
         );
 
         // console.log(stock.code);
@@ -158,6 +158,7 @@ export class QuantifyController {
       code: 200,
       data: {
         list: result,
+        // names: result.map((item) => item.name),
         count: result.length,
       },
     };
